@@ -1,0 +1,7 @@
+out/
+*.dll
+*.zip
+.vs/
+.idea/
+*.user
+Thumbs.db
