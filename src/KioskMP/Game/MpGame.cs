@@ -81,6 +81,15 @@ namespace KioskMP
 
 		public static void AddToast(string s)
 		{
+			if (string.IsNullOrEmpty(s))
+			{
+				return;
+			}
+			PruneToasts();
+			if (ToastLog.Contains(s))
+			{
+				return;
+			}
 			if (ToastLog.Count >= 6)
 			{
 				ToastLog.RemoveAt(0);
@@ -88,7 +97,6 @@ namespace KioskMP
 			}
 			ToastLog.Add(s);
 			_toastTime.Add(Time.realtimeSinceStartup + 5f);
-			
 		}
 
 		public static void AddChat(string s)
@@ -605,6 +613,7 @@ namespace KioskMP
 				}
 				SceneReady = true;
 			}
+			PruneToasts();
 			if (!Session.Active)
 			{
 				return;

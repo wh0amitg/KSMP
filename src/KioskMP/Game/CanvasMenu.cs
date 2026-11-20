@@ -59,6 +59,11 @@ namespace KioskMP
 		private static bool _sliderSetting;
 		private static float _friendListTop;
 
+		private static int _lobbyScroll;
+		private static int _lobbyScrollMax;
+		private static Slider _lobbySlider;
+		private static RectTransform _lobbySliderRoot;
+
 		private static string _lobbyName = "Kiosk Co-op";
 		private static string _maxPlayers = "4";
 		private static string _port = "27890";
@@ -177,7 +182,7 @@ namespace KioskMP
 				_lastLobbyRefresh = Time.realtimeSinceStartup;
 				SteamNet.RequestLobbyList();
 			}
-			if (SteamNet.SteamReady && (_page == "join" || _page == "lobby")
+			if (SteamNet.SteamReady && _page == "lobby"
 				&& Time.realtimeSinceStartup - _lastFriendsRefresh > 15f)
 			{
 				_lastFriendsRefresh = Time.realtimeSinceStartup;
@@ -319,6 +324,7 @@ namespace KioskMP
 			}
 			if (SteamNet.RequestLobbyList())
 			{
+				_lobbyScroll = 0;
 				_lastLobbyRefresh = Time.realtimeSinceStartup;
 				Game.AddToast("Searching lobbies ...");
 			}
@@ -447,6 +453,9 @@ namespace KioskMP
 			_statusLabel.alignment = TextAnchor.UpperRight;
 			_statusLabel.color = Grey;
 			_statusLabel.supportRichText = false;
+			Button statusBtn = status.AddComponent<Button>();
+			statusBtn.targetGraphic = _statusLabel;
+			statusBtn.onClick.AddListener(CopyCode);
 
 			GameObject toasts = new GameObject("toasts", typeof(RectTransform));
 			RectTransform trt = toasts.GetComponent<RectTransform>();
@@ -512,6 +521,8 @@ namespace KioskMP
 			_listRoot = null;
 			_friendSlider = null;
 			_friendSliderRoot = null;
+			_lobbySlider = null;
+			_lobbySliderRoot = null;
 			_modeBtns.Clear();
 			_modeLabels.Clear();
 			_cards.Clear();
@@ -626,22 +637,21 @@ namespace KioskMP
 			{
 				refresh.interactable = false;
 			}
-			_listRoot = Rect(p, "list", 0f, 112f, new Vector2(760f, 252f), Color.clear);
-			_friendListTop = 112f;
-			MakeFriendSlider(p, 0f, 10f);
-			Label(p, "LOBBY CODE", 15, TextAnchor.UpperLeft, Grey, 0f, 372f, 300f, 20f);
+			_listRoot = Rect(p, "list", 0f, 112f, new Vector2(760f, 300f), Color.clear);
+			MakeLobbySlider(p, 0f, 10f);
+			Label(p, "LOBBY CODE", 15, TextAnchor.UpperLeft, Grey, 0f, 420f, 300f, 20f);
 			MakeField(p, "code", delegate { return _codeSteam; }, delegate(string v) { _codeSteam = v; },
-				"friend's code", 0f, 398f, 220f, 44f, 30, false);
+				"friend's code", 0f, 446f, 220f, 44f, 30, false);
 			MakeField(p, "joinPwd", delegate { return _joinPwd; }, delegate(string v) { _joinPwd = v; },
-				"password", 230f, 398f, 150f, 44f, 24, false);
-			Button(p, "JOIN BY CODE", 390f, 398f, 170f, 44f, DoJoinSteamCode, 18, Yellow, Black, "btnCode");
-			Label(p, "LAN (DIRECT IP)", 15, TextAnchor.UpperLeft, Grey, 0f, 458f, 300f, 20f);
+				"password", 230f, 446f, 150f, 44f, 24, false);
+			Button(p, "JOIN BY CODE", 390f, 446f, 170f, 44f, DoJoinSteamCode, 18, Yellow, Black, "btnCode");
+			Label(p, "LAN (DIRECT IP)", 15, TextAnchor.UpperLeft, Grey, 0f, 506f, 300f, 20f);
 			MakeField(p, "ip", delegate { return _ip; }, delegate(string v) { _ip = v; },
-				"127.0.0.1", 0f, 484f, 240f, 44f, 40, false);
+				"127.0.0.1", 0f, 532f, 240f, 44f, 40, false);
 			MakeField(p, "port2", delegate { return _port; }, delegate(string v) { _port = v; },
-				"27890", 256f, 484f, 110f, 44f, 5, true);
-			Button(p, "CONNECT", 382f, 484f, 180f, 44f, DoConnectTcp, 18, Panel, White, "btnConnect");
-			Button(p, "BACK", 0f, 524f, 220f, 42f, delegate { ShowPage("main"); }, 18, Panel, Grey, "btnBack");
+				"27890", 256f, 532f, 110f, 44f, 5, true);
+			Button(p, "CONNECT", 382f, 532f, 180f, 44f, DoConnectTcp, 18, Panel, White, "btnConnect");
+			Button(p, "BACK", 0f, 596f, 220f, 42f, delegate { ShowPage("main"); }, 18, Panel, Grey, "btnBack");
 		}
 
 		private static void BuildCustom(Transform p)
@@ -729,12 +739,7 @@ namespace KioskMP
 			Title(p, "LOBBY");
 			bool host = Session.IsHost;
 			bool running = Game.GameRunning;
-			if (host && SteamNet.InLobby)
-			{
-				Button codeBtn = Button(p, "CODE  " + SteamNet.LobbyId.m_SteamID, 0f, 46f, 520f, 34f,
-					CopyCode, 22, Panel, Yellow, "btnCodeCopy");
-				_codeLine = codeBtn.GetComponentInChildren<Text>();
-			}
+			_codeLine = null;
 			_listRoot = Rect(p, "list", 0f, 88f, new Vector2(760f, 190f), Color.clear);
 			_friendListTop = 88f;
 			MakeFriendSlider(p, 0f, 10f);
@@ -781,12 +786,7 @@ namespace KioskMP
 					sb.Append(li.id).Append(',').Append(li.members).Append('/').Append(li.maxMembers)
 						.Append(',').Append(li.name).Append(',').Append(li.desc).Append(';');
 				}
-				sb.Append('|');
-				foreach (KeyValuePair<ulong, string> f in SteamNet.FriendList)
-				{
-					sb.Append(f.Key).Append(';');
-				}
-				sb.Append('|').Append(_friendScroll);
+				sb.Append('|').Append(_lobbyScroll);
 			}
 			else if (_page == "lobby")
 			{
@@ -851,14 +851,15 @@ namespace KioskMP
 			_friendSliderRoot.sizeDelta = new Vector2(20f, h);
 		}
 
-		private static void MakeFriendSlider(Transform parent, float y, float h)
+		private static Slider MakeScrollSlider(Transform parent, string name, float x, float y, float w, float h,
+			out RectTransform root, UnityEngine.Events.UnityAction<float> onChange)
 		{
-			RectTransform root = Rect(parent, "friendScroll", 730f, y, new Vector2(24f, h), Color.clear);
+			root = Rect(parent, name, x, y, new Vector2(w, h), Color.clear);
 			GameObject track = new GameObject("track", typeof(RectTransform), typeof(Image));
 			RectTransform tRt = track.GetComponent<RectTransform>();
 			tRt.SetParent(root, false);
-			tRt.anchorMin = new Vector2(0f, 0f);
-			tRt.anchorMax = new Vector2(1f, 1f);
+			tRt.anchorMin = Vector2.zero;
+			tRt.anchorMax = Vector2.one;
 			tRt.pivot = new Vector2(0.5f, 0.5f);
 			tRt.offsetMin = new Vector2(8f, 8f);
 			tRt.offsetMax = new Vector2(-8f, -8f);
@@ -899,18 +900,51 @@ namespace KioskMP
 			cb.selectedColor = Yellow;
 			cb.disabledColor = Grey;
 			s.colors = cb;
-			s.onValueChanged.AddListener(delegate(float v)
-			{
-				if (_sliderSetting)
+			s.onValueChanged.AddListener(onChange);
+			root.gameObject.SetActive(false);
+			return s;
+		}
+
+		private static void MakeFriendSlider(Transform parent, float y, float h)
+		{
+			_friendSlider = MakeScrollSlider(parent, "friendScroll", 730f, y, 24f, h,
+				out _friendSliderRoot, delegate(float v)
 				{
-					return;
-				}
-				_friendScroll = Mathf.RoundToInt(v * _friendScrollMax);
-				ClampFriendScroll();
-				_lastListSig = "\0";
-			});
-			_friendSlider = s;
-			_friendSliderRoot = root;
+					if (_sliderSetting)
+					{
+						return;
+					}
+					_friendScroll = Mathf.RoundToInt(v * _friendScrollMax);
+					ClampFriendScroll();
+					_lastListSig = "\0";
+				});
+		}
+
+		private static void MakeLobbySlider(Transform parent, float y, float h)
+		{
+			_lobbySlider = MakeScrollSlider(parent, "lobbyScroll", 730f, y, 24f, h,
+				out _lobbySliderRoot, delegate(float v)
+				{
+					if (_sliderSetting)
+					{
+						return;
+					}
+					_lobbyScroll = Mathf.RoundToInt(v * _lobbyScrollMax);
+					ClampLobbyScroll();
+					_lastListSig = "\0";
+				});
+		}
+
+		private static void ClampLobbyScroll()
+		{
+			if (_lobbyScroll < 0)
+			{
+				_lobbyScroll = 0;
+			}
+			if (_lobbyScroll > _lobbyScrollMax)
+			{
+				_lobbyScroll = _lobbyScrollMax;
+			}
 		}
 
 		private static void ClampFriendScroll()
@@ -927,7 +961,7 @@ namespace KioskMP
 
 		private static void FriendWheelTick()
 		{
-			if (_page != "join" && _page != "lobby")
+			if (_page != "lobby" && _page != "join")
 			{
 				return;
 			}
@@ -936,17 +970,24 @@ namespace KioskMP
 			catch { return; }
 			if (wheel > 0.01f)
 			{
-				_friendScroll--;
+				if (_page == "lobby") _friendScroll--; else _lobbyScroll--;
 			}
 			else if (wheel < -0.01f)
 			{
-				_friendScroll++;
+				if (_page == "lobby") _friendScroll++; else _lobbyScroll++;
 			}
 			else
 			{
 				return;
 			}
-			ClampFriendScroll();
+			if (_page == "lobby")
+			{
+				ClampFriendScroll();
+			}
+			else
+			{
+				ClampLobbyScroll();
+			}
 		}
 
 		private static float BuildFriendRows(float y, float bottom)
@@ -1000,6 +1041,10 @@ namespace KioskMP
 		private static void BuildJoinRows()
 		{
 			float y = 0f;
+			if (_lobbySliderRoot != null)
+			{
+				_lobbySliderRoot.gameObject.SetActive(false);
+			}
 			if (!SteamNet.SteamReady)
 			{
 				Label(_listRoot, "Steam is not available - use the lobby code or LAN.", 15,
@@ -1014,38 +1059,38 @@ namespace KioskMP
 			}
 			else
 			{
-				int shown = 0;
-				foreach (LobbyInfo li in SteamNet.LobbyResults)
+				int total = SteamNet.LobbyResults.Count;
+				int rows = Mathf.Min(7, total);
+				_lobbyScrollMax = Mathf.Max(0, total - rows);
+				ClampLobbyScroll();
+				for (int i = 0; i < rows; i++)
 				{
-					if (shown >= 3)
-					{
-						break;
-					}
+					LobbyInfo li = SteamNet.LobbyResults[_lobbyScroll + i];
+					float rowY = y + i * 36f;
 					ulong id = li.id;
 					bool full = li.maxMembers > 0 && li.members >= li.maxMembers;
-					Label(_listRoot, li.name, 17, TextAnchor.UpperLeft, White, 0f, y, 560f, 20f);
+					Label(_listRoot, li.name, 17, TextAnchor.UpperLeft, White, 0f, rowY, 560f, 20f);
 					string sub = (string.IsNullOrEmpty(li.desc) ? "" : li.desc + "  |  ")
 						+ (string.IsNullOrEmpty(li.host) ? "host ?" : li.host)
 						+ "  |  " + li.members + "/" + li.maxMembers + (full ? "  FULL" : "");
-					Label(_listRoot, sub, 13, TextAnchor.UpperLeft, Grey, 0f, y + 18f, 570f, 18f);
-					Button joinBtn = Button(_listRoot, "JOIN", 600f, y + 1f, 110f, 28f, delegate
+					Label(_listRoot, sub, 13, TextAnchor.UpperLeft, Grey, 0f, rowY + 18f, 570f, 18f);
+					Button joinBtn = Button(_listRoot, "JOIN", 600f, rowY + 1f, 110f, 28f, delegate
 					{
 						SteamNet.JoinPassword = "";
 						SteamNet.JoinLobby(id);
 					}, 14, Yellow, Black, "joinRow");
 					joinBtn.interactable = !full;
-					y += 36f;
-					shown++;
 				}
-				if (SteamNet.LobbyResults.Count > 3)
+				if (_lobbyScrollMax > 0 && _lobbySlider != null && _lobbySliderRoot != null)
 				{
-					Label(_listRoot, "  +" + (SteamNet.LobbyResults.Count - 3) + " more servers",
-						14, TextAnchor.UpperLeft, Grey, 0f, y, 760f, 24f);
-					y += 24f;
+					_lobbySliderRoot.gameObject.SetActive(true);
+					_lobbySliderRoot.anchoredPosition = new Vector2(745f, -(112f + y + rows * 18f));
+					_lobbySliderRoot.sizeDelta = new Vector2(20f, rows * 36f);
+					_sliderSetting = true;
+					_lobbySlider.value = (float)_lobbyScroll / _lobbyScrollMax;
+					_sliderSetting = false;
 				}
 			}
-			y += 6f;
-			BuildFriendRows(y, 252f);
 		}
 
 		private static void BuildPlayerRows()
@@ -1088,24 +1133,15 @@ namespace KioskMP
 
 		private static string StatusString()
 		{
-			string s;
-			if (Session.Active)
+			if (Session.Active && SteamNet.InLobby)
 			{
-				s = (Session.IsHost ? "HOSTING" : "CLIENT") + " | " + Session.DescribePeers();
-				if (Session.IsHost && SteamNet.InLobby)
-				{
-					s = "CODE " + SteamNet.LobbyId.m_SteamID + " | " + s;
-				}
+				return "CODE  " + SteamNet.LobbyId.m_SteamID;
 			}
-			else
+			if (!Session.Active)
 			{
-				s = string.IsNullOrEmpty(Session.StatusText) ? "offline" : Session.StatusText;
+				return string.IsNullOrEmpty(Session.StatusText) ? "offline" : Session.StatusText;
 			}
-			if (!string.IsNullOrEmpty(Session.LastError))
-			{
-				s += " | " + Session.LastError;
-			}
-			return s;
+			return "";
 		}
 
 		private static void RefreshDynamic()
@@ -1113,6 +1149,7 @@ namespace KioskMP
 			if (_statusLabel != null)
 			{
 				_statusLabel.text = StatusString();
+				_statusLabel.color = _statusLabel.text.StartsWith("CODE") ? Yellow : Grey;
 			}
 			if (_infoLine != null)
 			{

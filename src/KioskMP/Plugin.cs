@@ -10,9 +10,9 @@ namespace KioskMP
 	[BepInPlugin(GUID, NAME, VERSION)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const string GUID = "ksmp.slihu.xyz";
+		public const string GUID = "com.slihu.ksmp";
 		public const string NAME = "KioskMP";
-		public const string VERSION = "0.1beta";
+		public const string VERSION = "0.1.0";
 
 		private Harmony _harmony;
 
