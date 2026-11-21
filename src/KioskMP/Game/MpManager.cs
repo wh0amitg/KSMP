@@ -10,6 +10,7 @@ namespace KioskMP
 		private bool _steamTried;
 		private float _nextSteamTry;
 		private bool _menuErrLogged;
+		private bool _wasFocused = true;
 
 		private void Awake()
 		{
@@ -25,6 +26,35 @@ namespace KioskMP
 
 			try { Game.Update(); }
 			catch (Exception e) {  }
+
+			VoiceChat.Tick();
+
+			if (Session.Active && !MenuUI.IsOpen && !ChatOverlay.IsOpen
+				&& (Game.QuietDialogActive || Game.RemoteDialogRunning()))
+			{
+				PlayerController.blockGlobal = false;
+			}
+
+			bool focused = Application.isFocused;
+			if (focused && !_wasFocused)
+			{
+				try
+				{
+					if (Session.Active && Game.GameRunning && !MenuUI.IsOpen && !ChatOverlay.IsOpen)
+					{
+						Cursor.lockState = CursorLockMode.Locked;
+						Cursor.visible = false;
+						PlayerController pc = PlayerController.instance;
+						if (pc != null)
+						{
+							pc.LockCursor();
+						}
+						PlayerController.blockGlobal = false;
+					}
+				}
+				catch { }
+			}
+			_wasFocused = focused;
 
 			if (Session.Active && Game.GameRunning && Time.timeScale < 1f)
 			{

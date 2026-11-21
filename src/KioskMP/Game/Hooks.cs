@@ -76,32 +76,6 @@ namespace KioskMP
 		}
 	}
 
-	[HarmonyPatch(typeof(PlayerController), "SetHeight")]
-	internal static class PlayerHeightPatch
-	{
-		private static readonly AccessTools.FieldRef<PlayerController, float> _viewOffset =
-			AccessTools.FieldRefAccess<PlayerController, float>("playerViewYOffset");
-
-		private static void Postfix()
-		{
-			PlayerController pc = PlayerController.instance;
-			if (pc == null)
-			{
-				return;
-			}
-			CharacterController cc = pc.GetComponent<CharacterController>();
-			if (cc != null)
-			{
-				cc.height = cc.height >= 1.5f ? Game.AvatarHeight : Game.AvatarHeight * 0.5f;
-				cc.center = cc.height >= 1.5f ? Vector3.zero : new Vector3(0f, (Game.AvatarHeight * 0.5f - Game.AvatarHeight) * 0.5f, 0f);
-			}
-			if (_viewOffset != null && cc != null)
-			{
-				_viewOffset(pc) = cc.height >= 1.5f ? 0.48f : 0f;
-			}
-		}
-	}
-
 	[HarmonyPatch(typeof(PlayerController), "MoveAndRotateTo")]
 	internal static class PlayerSpawnPatch
 	{

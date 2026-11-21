@@ -9,7 +9,7 @@ namespace KioskMP
 
 	public static partial class Game
 	{
-		public const float AvatarHeight = 1.6f;
+		public const float AvatarHeight = 1.7f;
 
 		private sealed class Avatar
 		{
@@ -30,6 +30,7 @@ namespace KioskMP
 			public int charId = -1;
 			public int variant = -1;
 			public GameObject charRoot;
+			public Vector3 charBaseScale = Vector3.one;
 			public AvatarAnimator anim;
 			public bool dancing;
 			public float activeSince = -1f;
@@ -41,6 +42,13 @@ namespace KioskMP
 		private static Font _tagFont;
 		private static bool _tagFontTried;
 		private static bool _tagFontLogged;
+
+		public static Transform AvatarTransformOf(int peerId)
+		{
+			Avatar a;
+			return _avatars.TryGetValue(peerId, out a) && a != null && a.root != null
+				? a.root.transform : null;
+		}
 
 		public static void OnPeerJoined(int peerId, string name)
 		{
@@ -215,6 +223,7 @@ namespace KioskMP
 						charGo.transform.localPosition = new Vector3(0f, -AvatarHeight * 0.5f, 0f);
 						charGo.transform.localRotation = Quaternion.identity;
 						a.charRoot = charGo;
+						a.charBaseScale = charGo.transform.localScale;
 						a.anim = anim;
 					}
 				}
@@ -476,7 +485,14 @@ namespace KioskMP
 			if (!a.root.activeSelf) a.root.SetActive(true);
 		}
 
-		private static void SetVerticalScale(Transform t, float factor)
+		private static float NormalizeAngle(float a)
+		{
+			while (a > 180f) a -= 360f;
+			while (a < -180f) a += 360f;
+			return a;
+		}
+
+		private static void SetVerticalScale(Transform t, float factor, Vector3 baseScale)
 		{
 			if (t == null)
 			{
@@ -486,18 +502,18 @@ namespace KioskMP
 			float ax = Mathf.Abs(up.x);
 			float ay = Mathf.Abs(up.y);
 			float az = Mathf.Abs(up.z);
-			Vector3 s = Vector3.one;
+			Vector3 s = baseScale;
 			if (ay >= ax && ay >= az)
 			{
-				s.y = factor;
+				s.y *= factor;
 			}
 			else if (az >= ax)
 			{
-				s.z = factor;
+				s.z *= factor;
 			}
 			else
 			{
-				s.x = factor;
+				s.x *= factor;
 			}
 			t.localScale = s;
 		}
@@ -513,13 +529,6 @@ namespace KioskMP
 			{
 				_lastPlayerSend = now;
 				SendPlayerState();
-			}
-
-			float crouchH = 0.8f;
-			PlayerController lpc = PlayerController.instance;
-			if (lpc != null)
-			{
-				try { crouchH = lpc.crouchValue; } catch { }
 			}
 
 			Camera cam = Camera.main;
@@ -549,9 +558,9 @@ namespace KioskMP
 				}
 				if (!a.root.activeSelf) a.root.SetActive(true);
 
-				float h = a.crouch ? crouchH : AvatarHeight;
-				float cy = a.crouch ? (crouchH - AvatarHeight) * 0.5f : 0f;
-				float heightFactor = Mathf.Clamp(h / AvatarHeight, 0.35f, 1f);
+				float h = a.crouch ? 1f : AvatarHeight;
+				float cy = a.crouch ? -0.35f : 0f;
+				float heightFactor = a.crouch ? 1f / AvatarHeight : 1f;
 
 				if (a.capsule != null)
 				{
@@ -572,18 +581,19 @@ namespace KioskMP
 
 				if (a.charRoot != null)
 				{
-					SetVerticalScale(a.charRoot.transform, heightFactor);
+					SetVerticalScale(a.charRoot.transform, heightFactor, a.charBaseScale);
 					if (a.anim != null)
 					{
 						string st = a.dancing ? "dance" : (a.vel.magnitude > 0.3f ? "walk" : "idle");
 						if (a.anim.State != st) a.anim.Play(st);
+						a.anim.SetLook(a.pitch, NormalizeAngle(a.yaw - a.root.transform.eulerAngles.y));
 						a.anim.Tick(Time.deltaTime);
 					}
 				}
 				else if (a.body != null && !a.capsuleFallback)
 				{
 					a.body.localPosition = new Vector3(0f, -AvatarHeight * 0.5f, 0f);
-					SetVerticalScale(a.body, heightFactor);
+					SetVerticalScale(a.body, heightFactor, Vector3.one);
 				}
 
 				if (!a.diagDone && a.charRoot != null)
@@ -601,7 +611,7 @@ namespace KioskMP
 				if (a.tag != null && a.layers != null && cam != null)
 				{
 					a.tag.localPosition = a.charRoot != null
-						? new Vector3(0f, AvatarHeight * 0.625f, 0f)
+						? new Vector3(0f, AvatarHeight + 0.12f, 0f)
 						: new Vector3(0f, cy + h * 0.5f + 0.1f, 0f);
 
 					if (a.tagNorm <= 0f)

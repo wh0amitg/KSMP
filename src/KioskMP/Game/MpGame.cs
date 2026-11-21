@@ -114,15 +114,6 @@ namespace KioskMP
 			{
 				return;
 			}
-			if (text[0] == '/')
-			{
-				PropFX.Command(text);
-				return;
-			}
-			if (!Session.Active)
-			{
-				return;
-			}
 			AddChat(Session.SelfName + ": " + text);
 			byte[] m = MsgBuild.Chat(Session.SelfId, text);
 			if (Session.IsHost)
@@ -267,6 +258,9 @@ namespace KioskMP
 					}
 					break;
 				}
+				case Msg.Voice:
+					HandleVoice(fromPeerId, r);
+					break;
 				case Msg.PlayerState:
 					ApplyPlayerState(r);
 					break;
@@ -542,6 +536,7 @@ namespace KioskMP
 		{
 			NetCtx.Reset();
 			ReactionNet.Reset();
+			VoiceChat.Reset();
 			ResetObjects();
 			ResetPlayers();
 			PropFX.ClearAll();

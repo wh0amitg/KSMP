@@ -17,6 +17,7 @@ namespace KioskMP
 		PeerJoined = 12,
 		PeerLeft = 13,
 		Kick = 14,
+		Voice = 15,
 
 		ObjState = 20,
 		ObjClaim = 21,
@@ -129,7 +130,7 @@ namespace KioskMP
 
 	public static class Proto
 	{
-		public const byte Version = 8;
+		public const byte Version = 9;
 		public const int MaxFrame = 1 << 20;
 		public const int MaxPlayers = 4;
 
@@ -549,6 +550,11 @@ namespace KioskMP
 			}
 		}
 
+		public static bool HasVoiceFlag(byte flags)
+		{
+			return (flags & 2) != 0;
+		}
+
 		public static byte[] Chat(int fromId, string text)
 		{
 			using (PacketWriter w = new PacketWriter())
@@ -585,6 +591,16 @@ namespace KioskMP
 				w.I32(id);
 				w.Str(reason ?? "");
 				return w.ToMessage(Msg.Kick);
+			}
+		}
+
+		public static byte[] Voice(int peerId, byte[] data)
+		{
+			using (PacketWriter w = new PacketWriter())
+			{
+				w.I32(peerId);
+				w.Bytes(data);
+				return w.ToMessage(Msg.Voice);
 			}
 		}
 

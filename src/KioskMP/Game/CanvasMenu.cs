@@ -637,21 +637,21 @@ namespace KioskMP
 			{
 				refresh.interactable = false;
 			}
-			_listRoot = Rect(p, "list", 0f, 112f, new Vector2(760f, 300f), Color.clear);
+			_listRoot = Rect(p, "list", 0f, 112f, new Vector2(760f, 200f), Color.clear);
 			MakeLobbySlider(p, 0f, 10f);
-			Label(p, "LOBBY CODE", 15, TextAnchor.UpperLeft, Grey, 0f, 420f, 300f, 20f);
+			Label(p, "LOBBY CODE", 15, TextAnchor.UpperLeft, Grey, 0f, 320f, 300f, 20f);
 			MakeField(p, "code", delegate { return _codeSteam; }, delegate(string v) { _codeSteam = v; },
-				"friend's code", 0f, 446f, 220f, 44f, 30, false);
+				"friend's code", 0f, 346f, 220f, 44f, 30, false);
 			MakeField(p, "joinPwd", delegate { return _joinPwd; }, delegate(string v) { _joinPwd = v; },
-				"password", 230f, 446f, 150f, 44f, 24, false);
-			Button(p, "JOIN BY CODE", 390f, 446f, 170f, 44f, DoJoinSteamCode, 18, Yellow, Black, "btnCode");
-			Label(p, "LAN (DIRECT IP)", 15, TextAnchor.UpperLeft, Grey, 0f, 506f, 300f, 20f);
+				"password", 230f, 346f, 150f, 44f, 24, false);
+			Button(p, "JOIN BY CODE", 390f, 346f, 170f, 44f, DoJoinSteamCode, 18, Yellow, Black, "btnCode");
+			Label(p, "LAN (DIRECT IP)", 15, TextAnchor.UpperLeft, Grey, 0f, 406f, 300f, 20f);
 			MakeField(p, "ip", delegate { return _ip; }, delegate(string v) { _ip = v; },
-				"127.0.0.1", 0f, 532f, 240f, 44f, 40, false);
+				"127.0.0.1", 0f, 432f, 240f, 44f, 40, false);
 			MakeField(p, "port2", delegate { return _port; }, delegate(string v) { _port = v; },
-				"27890", 256f, 532f, 110f, 44f, 5, true);
-			Button(p, "CONNECT", 382f, 532f, 180f, 44f, DoConnectTcp, 18, Panel, White, "btnConnect");
-			Button(p, "BACK", 0f, 596f, 220f, 42f, delegate { ShowPage("main"); }, 18, Panel, Grey, "btnBack");
+				"27890", 256f, 432f, 110f, 44f, 5, true);
+			Button(p, "CONNECT", 382f, 432f, 180f, 44f, DoConnectTcp, 18, Panel, White, "btnConnect");
+			Button(p, "BACK", 0f, 496f, 220f, 42f, delegate { ShowPage("main"); }, 18, Panel, Grey, "btnBack");
 		}
 
 		private static void BuildCustom(Transform p)
@@ -1060,7 +1060,7 @@ namespace KioskMP
 			else
 			{
 				int total = SteamNet.LobbyResults.Count;
-				int rows = Mathf.Min(7, total);
+				int rows = Mathf.Min(5, total);
 				_lobbyScrollMax = Mathf.Max(0, total - rows);
 				ClampLobbyScroll();
 				for (int i = 0; i < rows; i++)
@@ -1135,7 +1135,7 @@ namespace KioskMP
 		{
 			if (Session.Active && SteamNet.InLobby)
 			{
-				return "CODE  " + SteamNet.LobbyId.m_SteamID;
+				return "CODE " + SteamNet.LobbyId.m_SteamID;
 			}
 			if (!Session.Active)
 			{
@@ -1161,7 +1161,7 @@ namespace KioskMP
 			}
 			if (_codeLine != null && SteamNet.InLobby)
 			{
-				_codeLine.text = "CODE  " + SteamNet.LobbyId.m_SteamID;
+				_codeLine.text = "CODE " + SteamNet.LobbyId.m_SteamID;
 			}
 			foreach (KeyValuePair<string, Image> kv in _modeBtns)
 			{

@@ -15,6 +15,16 @@ namespace KioskMP
 		private FbxAnim _cur;
 		private string _state = "";
 		private float _t;
+		private int _head = -1;
+		private int _neck = -1;
+		private float _pitch;
+		private float _yawDelta;
+
+		public void SetLook(float pitch, float yawDelta)
+		{
+			_pitch = Mathf.Clamp(pitch, -70f, 70f);
+			_yawDelta = Mathf.Clamp(yawDelta, -80f, 80f);
+		}
 
 		public AvatarAnimator(CharacterDef def, Transform[] bones)
 		{
@@ -29,6 +39,19 @@ namespace KioskMP
 				if (bones[i] != null && !_idx.ContainsKey(bones[i].name))
 				{
 					_idx[bones[i].name] = i;
+				}
+				if (bones[i] != null)
+				{
+					string n = bones[i].name;
+					if (n.IndexOf("Head", StringComparison.OrdinalIgnoreCase) >= 0 && _head < 0
+						&& n.IndexOf("Top", StringComparison.OrdinalIgnoreCase) < 0)
+					{
+						_head = i;
+					}
+					if (n.IndexOf("Neck", StringComparison.OrdinalIgnoreCase) >= 0 && _neck < 0)
+					{
+						_neck = i;
+					}
 				}
 				_restPos[i] = bones[i] != null ? bones[i].localPosition : Vector3.zero;
 				_restRot[i] = bones[i] != null ? bones[i].localRotation : Quaternion.identity;
@@ -130,6 +153,21 @@ namespace KioskMP
 				{
 					tr.localRotation = _def.Pose(bi, Sample3(ab));
 				}
+			}
+			ApplyLook();
+		}
+
+		private void ApplyLook()
+		{
+			if (_head >= 0 && _head < _bones.Length && _bones[_head] != null)
+			{
+				Quaternion extra = Quaternion.Euler(_pitch * 0.55f, _yawDelta * 0.6f, 0f);
+				_bones[_head].localRotation = _bones[_head].localRotation * extra;
+			}
+			if (_neck >= 0 && _neck < _bones.Length && _bones[_neck] != null)
+			{
+				Quaternion extra = Quaternion.Euler(_pitch * 0.45f, _yawDelta * 0.4f, 0f);
+				_bones[_neck].localRotation = _bones[_neck].localRotation * extra;
 			}
 		}
 

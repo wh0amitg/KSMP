@@ -57,7 +57,7 @@ namespace KioskMP
 			_props.Clear();
 		}
 
-		public static void Command(string text)
+		public static void Command(string text) //not used now
 		{
 			string cmd = text.Trim().Split(' ')[0].ToLowerInvariant();
 			if (cmd == "/help")
@@ -96,6 +96,7 @@ namespace KioskMP
 			}
 			SpawnLocal(propId, Session.SelfId, pos, yaw);
 			Game.AddToast("Wolf spawned");
+			Game.AddChat("[KP] " + Session.SelfName + " summoned a wolf");
 			if (Session.Active && Session.SelfId >= 0)
 			{
 				byte[] m = MsgBuild.PropSpawn(Session.SelfId, propId, new NetVec3(pos.x, pos.y, pos.z), yaw);
@@ -370,6 +371,11 @@ namespace KioskMP
 
 		private static Camera PickCamera()
 		{
+			PlayerController pc = PlayerController.instance;
+			if (pc != null && pc.mainCamera != null && pc.mainCamera.isActiveAndEnabled)
+			{
+				return pc.mainCamera;
+			}
 			Camera cam = Camera.main;
 			if (cam != null && cam.isActiveAndEnabled)
 			{
