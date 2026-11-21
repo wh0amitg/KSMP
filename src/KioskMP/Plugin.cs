@@ -12,7 +12,7 @@ namespace KioskMP
 	{
 		public const string GUID = "com.slihu.ksmp";
 		public const string NAME = "KioskMP";
-		public const string VERSION = "0.1.0";
+		public const string VERSION = "0.2.0";
 
 		private Harmony _harmony;
 
